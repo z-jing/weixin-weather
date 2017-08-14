@@ -1,26 +1,56 @@
-//index.js
-//获取应用实例
-var app = getApp()
+var citys = require('../city.js')
 Page({
   data: {
-    motto: 'Hello World',
-    userInfo: {}
+    weathes: {},
+    city: ''
   },
-  //事件处理函数
-  bindViewTap: function() {
-    wx.navigateTo({
-      url: '../logs/logs'
+  bindKeyInput: function(e){
+    this.setData({
+      city:e.detail.value
+    });
+  },
+  searchWeathes: function () {
+    var that = this;
+    console.log('16行的this========', JSON.stringify(this));
+    wx.request({
+      url: 'http://www.weather.com.cn/data/cityinfo/' + citys[this.data.city.replace(/市|县|区|镇|省/g, '')] + '.html',
+      method: 'GET',
+      success: function(data){
+        if (data.statusCode == 200) {
+          console.log('23=======' + JSON.stringify(data));
+          that.setData({
+            weathes: data.data.weatherinfo
+          });
+        }
+      }
     })
+
   },
-  onLoad: function () {
-    console.log('onLoad')
-    var that = this
-    //调用应用实例的方法获取全局数据
-    app.getUserInfo(function(userInfo){
-      //更新数据
-      that.setData({
-        userInfo:userInfo
-      })
+  onReady: function(){
+    var that = this;
+    wx.getLocation({
+      type: 'gcj02',
+      success: function(e){
+        wx.request({
+          url: 'http://api.map.baidu.com/geocoder/v2/',
+          data: {
+            'ak': '95E5007f38fb52241ee04113c6e97501',
+            'callback': 'renderReverse',
+            'location': e.latitude + ',' + e.longitude,
+            'output': 'json',
+            'pois': 1
+          },
+          success: function(data){
+            if (data.statusCode == 200) {
+              data = JSON.parse(data.data.replace(/^renderReverse\&\&renderReverse\(|\)$/g, ''));
+              that.setData({
+                city: data.result.addressComponent.city
+              });
+              that.searchWeathes();
+            }
+          }
+        })
+      }
     })
   }
 })
